@@ -11,15 +11,14 @@ CREATE TABLE RecurringDonation
     IsActive            BOOLEAN NOT NULL DEFAULT TRUE,
     FreqInDays          INT     NOT NULL,
     LastPayment         DATE,
-    NextPayment         DATE
+    NextPayment         DATE AS (DATE_ADD(LastPayment, INTERVAL FreqInDays DAY)) VIRTUAL
 );
 
 CREATE TABLE Donation
 (
     DonationId          INT PRIMARY KEY AUTO_INCREMENT,
-    UserId              INT                          NOT NULL,
-    DonationType        ENUM ('Single', 'Recurring') NOT NULL,
-    Amount              INT                          NOT NULL,
+    UserId              INT            NOT NULL,
+    Amount              DECIMAL(10, 2) NOT NULL,
     PaymentMethodId     INT,
     DonationDate        DATE,
     RecurringDonationId INT,
@@ -28,7 +27,9 @@ CREATE TABLE Donation
     FOREIGN KEY (UserId) REFERENCES User (UserId),
     FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId),
     FOREIGN KEY (RecurringDonationId) REFERENCES RecurringDonation (RecurringDonationId),
-    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId)
+    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId),
+    CHECK (RecurringDonationId IS NULL OR RecurringDonationId > 0)
+
 );
 
 CREATE TABLE AdoptionProgress
@@ -46,6 +47,17 @@ CREATE TABLE AdoptionProgress
     FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId)
 
 );
+
+CREATE TABLE AdoptionProgressHistory
+(
+    HistoryId          INT PRIMARY KEY AUTO_INCREMENT,
+    AdoptionProgressId INT  NOT NULL,
+    AdoptionStatus     ENUM ('In Branch', 'Adoption In progress', 'Awaiting Home visit', 'Adopted'),
+    StatusUpdateAt     DATE NOT NULL,
+    Notes              TEXT,
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId)
+);
+
 
 CREATE TABLE HomeVisit
 (
@@ -95,7 +107,7 @@ CREATE TABLE CardDetails
     PaymentMethodId INT PRIMARY KEY,
     CardNumber      VARCHAR(50) NOT NULL,
     ExpDate         DATE        NOT NULL,
-    SecurityCode    VARCHAR(3)  NOT NULL,
+    SecurityCode    VARCHAR(4)  NOT NULL,
     BillingPostCode VARCHAR(6)  NOT NULL,
     FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE CASCADE
 );
@@ -200,11 +212,8 @@ CREATE TABLE User
     Email     VARCHAR(100) UNIQUE NOT NULL,
     Phone     VARCHAR(15)         NOT NULL,
     AddressId INT                 NOT NULL,
-    RoleId    INT,
 
-    FOREIGN KEY (AddressId) REFERENCES Address (AddressId),
-    FOREIGN KEY (RoleId) REFERENCES Role (RoleId)
-
+    FOREIGN KEY (AddressId) REFERENCES Address (AddressId)
 );
 
 CREATE TABLE Branch
