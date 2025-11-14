@@ -42,7 +42,8 @@ CREATE TABLE AdoptionProgress
     HomeVisitId        INT,
 
     FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId),
-    FOREIGN KEY (HomeVisitId) REFERENCES HomeVisit (HomeVisitId)
+    FOREIGN KEY (HomeVisitId) REFERENCES HomeVisit (HomeVisitId),
+    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId)
 
 );
 
@@ -75,15 +76,30 @@ CREATE TABLE Sponsorship
 CREATE TABLE PaymentMethod
 (
     PaymentMethodId   INT PRIMARY KEY AUTO_INCREMENT,
-    PaymentMethodType ENUM ('Direct Debit', 'Card'),
-    SortCode          VARCHAR(10),
-    AccountNumber     VARCHAR(15),
-    AccountHolderName VARCHAR(100),
-    CardNumber        VARCHAR(50),
-    ExpDate           DATE,
-    SecurityCode      VARCHAR(3),
-    BillingPostCode   VARCHAR(6)
+    UserId            INT                           NOT NULL,
+    PaymentMethodType ENUM ('Direct Debit', 'Card') NOT NULL,
+    FOREIGN KEY (UserId) REFERENCES User (UserId)
 );
+
+CREATE TABLE DirectDebitDetails
+(
+    PaymentMethodId   INT PRIMARY KEY,
+    SortCode          VARCHAR(10)  NOT NULL,
+    AccountNumber     VARCHAR(15)  NOT NULL,
+    AccountHolderName VARCHAR(100) NOT NULL,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE CASCADE
+);
+
+CREATE TABLE CardDetails
+(
+    PaymentMethodId INT PRIMARY KEY,
+    CardNumber      VARCHAR(50) NOT NULL,
+    ExpDate         DATE        NOT NULL,
+    SecurityCode    VARCHAR(3)  NOT NULL,
+    BillingPostCode VARCHAR(6)  NOT NULL,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE CASCADE
+);
+
 
 CREATE TABLE Address
 (
@@ -131,7 +147,8 @@ CREATE TABLE Animal
     Breed           VARCHAR(50) NOT NULL,
     DOB             DATE        NOT NULL,
     Age             INT AS (TIMESTAMPDIFF(YEAR, DOB, CURDATE())) VIRTUAL,
-    Size            ENUM ('Small', 'Medium', 'Large') Description     TEXT,
+    Size            ENUM ('Small', 'Medium', 'Large'),
+    Description     TEXT,
     MedicalStatusId INT         NOT NULL,
 
     FOREIGN KEY (BranchId) REFERENCES Branch (BranchId),
@@ -143,7 +160,7 @@ CREATE TABLE Campaign
     CampaignId  INT PRIMARY KEY AUTO_INCREMENT,
     Description TEXT,
     StartDate   DATE,
-    EndDate     DATE,
+    EndDate     DATE
 );
 
 CREATE TABLE Assignment
@@ -203,7 +220,7 @@ CREATE TABLE MedicalStatus
 (
     MedicalStatusId   INT PRIMARY KEY AUTO_INCREMENT,
     CurrentMedication TEXT,
-    MedicalHistory    TEXT,
+    MedicalHistory    TEXT
 );
 
 
