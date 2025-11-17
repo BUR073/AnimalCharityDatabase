@@ -6,13 +6,6 @@ CREATE
 USE
     animal;
 
-CREATE TABLE MedicalStatus
-(
-    MedicalStatusId   INT PRIMARY KEY AUTO_INCREMENT,
-    CurrentMedication TEXT,
-    MedicalHistory    TEXT
-);
-
 CREATE TABLE Address
 (
     AddressId INT PRIMARY KEY AUTO_INCREMENT,
@@ -32,13 +25,6 @@ CREATE TABLE Branch
     FOREIGN KEY (AddressId) REFERENCES Address (AddressId)
 );
 
-CREATE TABLE Role
-(
-    RoleId   INT PRIMARY KEY AUTO_INCREMENT,
-    Salary   INT,
-    RoleType ENUM ('Staff', 'Volunteer')
-);
-
 CREATE TABLE AdoptionFormQuestion
 (
     QuestionId INT PRIMARY KEY AUTO_INCREMENT,
@@ -53,23 +39,42 @@ CREATE TABLE Campaign
     EndDate     DATE
 );
 
-CREATE TABLE Animal
+CREATE TABLE AdoptionProgress
 (
-    AnimalId        INT PRIMARY KEY AUTO_INCREMENT,
-    BranchId        INT         NOT NULL,
-    Name            VARCHAR(50) NOT NULL,
-    Type            VARCHAR(50) NOT NULL,
-    Breed           VARCHAR(50) NOT NULL,
-    DOB             DATE        NOT NULL,
-    Size            ENUM ('Small', 'Medium', 'Large'),
-    Description     TEXT,
-    MedicalStatusId INT         NOT NULL,
+    AdoptionProgressId INT PRIMARY KEY AUTO_INCREMENT,
+    AdoptionStatus     ENUM ('In Branch', 'Adoption In progress', 'Awaiting Home visit', 'Adopted'),
+    Notes              TEXT,
+    StatusUpdateAt     DATE NOT NULL,
 
-    FOREIGN KEY (BranchId) REFERENCES Branch (BranchId),
-    FOREIGN KEY (MedicalStatusId) REFERENCES MedicalStatus (MedicalStatusId)
 );
 
+CREATE TABLE Animal
+(
+    AnimalId           INT PRIMARY KEY AUTO_INCREMENT,
+    BranchId           INT         NOT NULL,
+    Name               VARCHAR(50) NOT NULL,
+    Type               VARCHAR(50) NOT NULL,
+    Breed              VARCHAR(50) NOT NULL,
+    DOB                DATE        NOT NULL,
+    Size               ENUM ('Small', 'Medium', 'Large'),
+    Description        TEXT,
+    MedicalStatusId    INT UNIQUE  NOT NULL,
+    AdoptionProgressId INT UNIQUE  NOT NULL,
 
+    FOREIGN KEY (BranchId) REFERENCES Branch (BranchId),
+    FOREIGN KEY (MedicalStatusId) REFERENCES MedicalStatus (MedicalStatusId),
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId)
+);
+
+CREATE TABLE MedicalStatus
+(
+    MedicalStatusId   INT PRIMARY KEY AUTO_INCREMENT,
+    CurrentMedication TEXT,
+    MedicalHistory    TEXT,
+    AnimalId          INT UNIQUE,
+
+    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId)
+);
 
 CREATE TABLE User
 (
@@ -83,6 +88,16 @@ CREATE TABLE User
     FOREIGN KEY (AddressId) REFERENCES Address (AddressId)
 );
 
+CREATE TABLE Role
+(
+    RoleId   INT PRIMARY KEY AUTO_INCREMENT,
+    UserId   INT NOT NULL,
+    Salary   INT,
+    RoleType ENUM ('Staff', 'Volunteer'),
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId)
+);
+
 CREATE TABLE PaymentMethod
 (
     PaymentMethodId   INT PRIMARY KEY AUTO_INCREMENT,
@@ -92,25 +107,6 @@ CREATE TABLE PaymentMethod
 );
 
 
-
-CREATE TABLE RecurringDonation
-(
-    RecurringDonationId INT PRIMARY KEY AUTO_INCREMENT,
-    StartDate           Date    NOT NULL,
-    IsActive            BOOLEAN NOT NULL DEFAULT TRUE,
-    FreqInDays          INT     NOT NULL,
-    LastPayment         DATE,
-    NextPayment         DATE AS (DATE_ADD(LastPayment, INTERVAL FreqInDays DAY)) VIRTUAL
-);
-
-CREATE TABLE AdoptionForm
-(
-    AdoptionFormId INT PRIMARY KEY AUTO_INCREMENT,
-    UserId         INT NOT NULL,
-    DateSubmitted  DATETIME DEFAULT CURRENT_TIMESTAMP,
-
-    FOREIGN KEY (UserId) REFERENCES User (UserId)
-);
 
 CREATE TABLE DirectDebitDetails
 (
@@ -135,31 +131,28 @@ CREATE TABLE CardDetails
 
 CREATE TABLE HomeVisit
 (
-    HomeVisitId     INT PRIMARY KEY AUTO_INCREMENT,
-    VisitDate       DATE NOT NULL,
-    StaffWhoVisited INT,
-    Adopter         INT,
+    HomeVisitId        INT PRIMARY KEY AUTO_INCREMENT,
+    VisitDate          DATE NOT NULL,
+    StaffWhoVisited    INT,
+    Adopter            INT,
+    AdoptionProgressId INT UNIQUE,
 
     FOREIGN KEY (StaffWhoVisited) REFERENCES User (UserId),
     FOREIGN KEY (Adopter) REFERENCES User (UserId),
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId),
 
     CHECK (StaffWhoVisited <> Adopter)
 );
 
-CREATE TABLE AdoptionProgress
+CREATE TABLE AdoptionForm
 (
-    AdoptionProgressId INT PRIMARY KEY AUTO_INCREMENT,
-    AnimalId           INT,
-    AdoptionStatus     ENUM ('In Branch', 'Adoption In progress', 'Awaiting Home visit', 'Adopted'),
-    Notes              TEXT,
-    StatusUpdateAt     DATE NOT NULL,
-    AdoptionFormId     INT,
-    HomeVisitId        INT,
+    AdoptionFormId     INT PRIMARY KEY AUTO_INCREMENT,
+    UserId             INT NOT NULL,
+    DateSubmitted      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    AdoptionProgressId INT UNIQUE,
 
-    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId),
-    FOREIGN KEY (HomeVisitId) REFERENCES HomeVisit (HomeVisitId),
-    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId)
-
+    FOREIGN KEY (UserId) REFERENCES User (UserId),
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId)
 );
 
 
@@ -228,20 +221,30 @@ CREATE TABLE RoleAssignments
 
 CREATE TABLE Donation
 (
-    DonationId          INT PRIMARY KEY AUTO_INCREMENT,
-    UserId              INT            NOT NULL,
-    Amount              DECIMAL(10, 2) NOT NULL,
-    PaymentMethodId     INT,
-    DonationDate        DATE,
-    RecurringDonationId INT,
-    CampaignId          INT,
+    DonationId      INT PRIMARY KEY AUTO_INCREMENT,
+    UserId          INT            NOT NULL,
+    Amount          DECIMAL(10, 2) NOT NULL,
+    PaymentMethodId INT,
+    DonationDate    DATE,
+    CampaignId      INT,
+    IsRecurring     BOOL           NOT NULL,
 
     FOREIGN KEY (UserId) REFERENCES User (UserId),
     FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId),
-    FOREIGN KEY (RecurringDonationId) REFERENCES RecurringDonation (RecurringDonationId),
     FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId),
-    CHECK (RecurringDonationId IS NULL OR RecurringDonationId > 0)
+);
 
+CREATE TABLE RecurringDonation
+(
+    RecurringDonationId INT PRIMARY KEY AUTO_INCREMENT,
+    StartDate           Date    NOT NULL,
+    IsActive            BOOLEAN NOT NULL DEFAULT TRUE,
+    FreqInDays          INT     NOT NULL,
+    LastPayment         DATE,
+    NextPayment         DATE AS (DATE_ADD(LastPayment, INTERVAL FreqInDays DAY)) VIRTUAL,
+    DonationId INT NOT NULL,
+
+    FOREIGN KEY (DonationId) REFERENCES Donation(DonationId)
 );
 
 
@@ -251,9 +254,6 @@ CREATE TABLE Donation
 # Identify top donors by contribution.
 # Track the number of animals rehomed in a specific year.
 # Show which volunteers are currently active.
-
-
-
 
 
 
