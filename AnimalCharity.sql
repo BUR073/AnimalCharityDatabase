@@ -22,7 +22,7 @@ CREATE TABLE Branch
     BranchName VARCHAR(100) NOT NULL,
     AddressId  INT          NOT NULL,
 
-    FOREIGN KEY (AddressId) REFERENCES Address (AddressId)
+    FOREIGN KEY (AddressId) REFERENCES Address (AddressId) ON DELETE RESTRICT
 );
 
 CREATE TABLE AdoptionFormQuestion
@@ -70,9 +70,9 @@ CREATE TABLE Animal
     MedicalStatusId    INT UNIQUE,
     AdoptionProgressId INT UNIQUE  NOT NULL,
 
-    FOREIGN KEY (BranchId) REFERENCES Branch (BranchId),
-    FOREIGN KEY (MedicalStatusId) REFERENCES MedicalStatus (MedicalStatusId),
-    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId)
+    FOREIGN KEY (BranchId) REFERENCES Branch (BranchId) ON DELETE RESTRICT,
+    FOREIGN KEY (MedicalStatusId) REFERENCES MedicalStatus (MedicalStatusId) ON DELETE RESTRICT,
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId) ON DELETE RESTRICT
 );
 
 CREATE TABLE User
@@ -84,7 +84,7 @@ CREATE TABLE User
     Phone     VARCHAR(15)         NOT NULL,
     AddressId INT                 NOT NULL,
 
-    FOREIGN KEY (AddressId) REFERENCES Address (AddressId)
+    FOREIGN KEY (AddressId) REFERENCES Address (AddressId) ON DELETE RESTRICT
 );
 
 CREATE TABLE Role
@@ -95,7 +95,7 @@ CREATE TABLE Role
     RoleType ENUM ('Staff', 'Volunteer'),
     IsActive BOOLEAN NOT NULL DEFAULT TRUE,
 
-    FOREIGN KEY (UserId) REFERENCES User (UserId)
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE CASCADE
 );
 
 CREATE TABLE PaymentMethod
@@ -103,10 +103,9 @@ CREATE TABLE PaymentMethod
     PaymentMethodId   INT PRIMARY KEY AUTO_INCREMENT,
     UserId            INT                           NOT NULL,
     PaymentMethodType ENUM ('Direct Debit', 'Card') NOT NULL,
-    FOREIGN KEY (UserId) REFERENCES User (UserId)
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE CASCADE
 );
-
-
 
 CREATE TABLE DirectDebitDetails
 (
@@ -128,8 +127,6 @@ CREATE TABLE CardDetails
     FOREIGN KEY (BillingAddressId) REFERENCES Address (AddressId)
 );
 
-
-
 CREATE TABLE HomeVisit
 (
     HomeVisitId        INT PRIMARY KEY AUTO_INCREMENT,
@@ -138,9 +135,9 @@ CREATE TABLE HomeVisit
     Adopter            INT,
     AdoptionProgressId INT UNIQUE,
 
-    FOREIGN KEY (StaffWhoVisited) REFERENCES User (UserId),
-    FOREIGN KEY (Adopter) REFERENCES User (UserId),
-    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId),
+    FOREIGN KEY (StaffWhoVisited) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (Adopter) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId) ON DELETE RESTRICT,
 
     CHECK (StaffWhoVisited <> Adopter)
 );
@@ -152,11 +149,9 @@ CREATE TABLE AdoptionForm
     DateSubmitted      DATETIME DEFAULT CURRENT_TIMESTAMP,
     AdoptionProgressId INT UNIQUE,
 
-    FOREIGN KEY (UserId) REFERENCES User (UserId),
-    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId)
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId) ON DELETE RESTRICT
 );
-
-
 
 CREATE TABLE AdoptionProgressHistory
 (
@@ -165,7 +160,7 @@ CREATE TABLE AdoptionProgressHistory
     AdoptionStatus     ENUM ('In Branch', 'Adoption In progress', 'Awaiting Home visit', 'Adopted'),
     StatusUpdateAt     DATE NOT NULL,
     Notes              TEXT,
-    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId)
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId) ON DELETE CASCADE
 );
 
 CREATE TABLE Assignment
@@ -175,11 +170,10 @@ CREATE TABLE Assignment
     AdoptionFormId INT,
     CampaignId     INT,
 
-    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId),
-    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId),
-    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId)
+    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId) ON DELETE RESTRICT,
+    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId) ON DELETE RESTRICT,
+    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId) ON DELETE RESTRICT
 );
-
 
 CREATE TABLE Sponsorship
 (
@@ -189,12 +183,10 @@ CREATE TABLE Sponsorship
     SponsorshipAmount INT NOT NULL,
     PaymentMethodId   INT NOT NULL,
 
-    FOREIGN KEY (UserId) REFERENCES User (UserId),
-    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId),
-    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId)
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId) ON DELETE RESTRICT,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT
 );
-
-
 
 CREATE TABLE AdoptionFormAnswer
 (
@@ -203,11 +195,9 @@ CREATE TABLE AdoptionFormAnswer
     QuestionId     INT  NOT NULL,
     Answer         TEXT NOT NULL,
 
-    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId),
-    FOREIGN KEY (QuestionId) REFERENCES AdoptionFormQuestion (QuestionId)
+    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId) ON DELETE CASCADE,
+    FOREIGN KEY (QuestionId) REFERENCES AdoptionFormQuestion (QuestionId) ON DELETE RESTRICT
 );
-
-
 
 CREATE TABLE RoleAssignments
 (
@@ -217,8 +207,6 @@ CREATE TABLE RoleAssignments
     FOREIGN KEY (RoleId) REFERENCES Role (RoleId) ON DELETE CASCADE,
     FOREIGN KEY (AssignmentId) REFERENCES Assignment (AssignmentId) ON DELETE CASCADE
 );
-
-
 
 CREATE TABLE Donation
 (
@@ -230,9 +218,9 @@ CREATE TABLE Donation
     CampaignId      INT,
     IsRecurring     BOOL           NOT NULL,
 
-    FOREIGN KEY (UserId) REFERENCES User (UserId),
-    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId),
-    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId)
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId) ON DELETE RESTRICT,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT
 );
 
 CREATE TABLE RecurringDonation
@@ -245,7 +233,7 @@ CREATE TABLE RecurringDonation
     NextPayment         DATE AS (DATE_ADD(LastPayment, INTERVAL FreqInDays DAY)) VIRTUAL,
     DonationId          INT     NOT NULL,
 
-    FOREIGN KEY (DonationId) REFERENCES Donation (DonationId)
+    FOREIGN KEY (DonationId) REFERENCES Donation (DonationId) ON DELETE CASCADE
 );
 
 
