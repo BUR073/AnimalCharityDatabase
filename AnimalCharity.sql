@@ -39,12 +39,21 @@ CREATE TABLE Campaign
     EndDate     DATE
 );
 
+
+CREATE TABLE MedicalStatus
+(
+    MedicalStatusId   INT PRIMARY KEY AUTO_INCREMENT,
+    CurrentMedication TEXT,
+    MedicalHistory    TEXT
+
+);
+
 CREATE TABLE AdoptionProgress
 (
     AdoptionProgressId INT PRIMARY KEY AUTO_INCREMENT,
     AdoptionStatus     ENUM ('In Branch', 'Adoption In progress', 'Awaiting Home visit', 'Adopted'),
     Notes              TEXT,
-    StatusUpdateAt     DATE NOT NULL,
+    StatusUpdateAt     DATE NOT NULL
 
 );
 
@@ -58,22 +67,12 @@ CREATE TABLE Animal
     DOB                DATE        NOT NULL,
     Size               ENUM ('Small', 'Medium', 'Large'),
     Description        TEXT,
-    MedicalStatusId    INT UNIQUE  NOT NULL,
+    MedicalStatusId    INT UNIQUE,
     AdoptionProgressId INT UNIQUE  NOT NULL,
 
     FOREIGN KEY (BranchId) REFERENCES Branch (BranchId),
     FOREIGN KEY (MedicalStatusId) REFERENCES MedicalStatus (MedicalStatusId),
     FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId)
-);
-
-CREATE TABLE MedicalStatus
-(
-    MedicalStatusId   INT PRIMARY KEY AUTO_INCREMENT,
-    CurrentMedication TEXT,
-    MedicalHistory    TEXT,
-    AnimalId          INT UNIQUE,
-
-    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId)
 );
 
 CREATE TABLE User
@@ -91,9 +90,10 @@ CREATE TABLE User
 CREATE TABLE Role
 (
     RoleId   INT PRIMARY KEY AUTO_INCREMENT,
-    UserId   INT NOT NULL,
+    UserId   INT     NOT NULL,
     Salary   INT,
     RoleType ENUM ('Staff', 'Volunteer'),
+    IsActive BOOLEAN NOT NULL DEFAULT TRUE,
 
     FOREIGN KEY (UserId) REFERENCES User (UserId)
 );
@@ -119,12 +119,13 @@ CREATE TABLE DirectDebitDetails
 
 CREATE TABLE CardDetails
 (
-    PaymentMethodId INT PRIMARY KEY,
-    CardNumber      VARCHAR(50) NOT NULL,
-    ExpDate         DATE        NOT NULL,
-    SecurityCode    VARCHAR(4)  NOT NULL,
-    BillingPostCode VARCHAR(6)  NOT NULL,
-    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE CASCADE
+    PaymentMethodId  INT PRIMARY KEY,
+    CardNumber       VARCHAR(50) NOT NULL,
+    ExpDate          DATE        NOT NULL,
+    SecurityCode     VARCHAR(4)  NOT NULL,
+    BillingAddressId INT         NOT NULL,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE CASCADE,
+    FOREIGN KEY (BillingAddressId) REFERENCES Address (AddressId)
 );
 
 
@@ -175,8 +176,8 @@ CREATE TABLE Assignment
     CampaignId     INT,
 
     FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId),
-    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId),
-    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId)
+    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId),
+    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId)
 );
 
 
@@ -230,8 +231,8 @@ CREATE TABLE Donation
     IsRecurring     BOOL           NOT NULL,
 
     FOREIGN KEY (UserId) REFERENCES User (UserId),
-    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId),
     FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId),
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId)
 );
 
 CREATE TABLE RecurringDonation
@@ -242,9 +243,9 @@ CREATE TABLE RecurringDonation
     FreqInDays          INT     NOT NULL,
     LastPayment         DATE,
     NextPayment         DATE AS (DATE_ADD(LastPayment, INTERVAL FreqInDays DAY)) VIRTUAL,
-    DonationId INT NOT NULL,
+    DonationId          INT     NOT NULL,
 
-    FOREIGN KEY (DonationId) REFERENCES Donation(DonationId)
+    FOREIGN KEY (DonationId) REFERENCES Donation (DonationId)
 );
 
 
