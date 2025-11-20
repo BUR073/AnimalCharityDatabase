@@ -34,6 +34,7 @@ CREATE TABLE AdoptionFormQuestion
 CREATE TABLE Campaign
 (
     CampaignId  INT PRIMARY KEY AUTO_INCREMENT,
+    Name        Varchar(100) NOT NULL,
     Description TEXT,
     StartDate   DATE,
     EndDate     DATE
@@ -208,41 +209,39 @@ CREATE TABLE RoleAssignments
     FOREIGN KEY (AssignmentId) REFERENCES Assignment (AssignmentId) ON DELETE CASCADE
 );
 
-CREATE TABLE Donation
-(
-    DonationId      INT PRIMARY KEY AUTO_INCREMENT,
-    UserId          INT            NOT NULL,
-    Amount          DECIMAL(10, 2) NOT NULL,
-    PaymentMethodId INT,
-    DonationDate    DATE,
-    CampaignId      INT,
-    IsRecurring     BOOL           NOT NULL,
-
-    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
-    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId) ON DELETE RESTRICT,
-    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT
-);
-
 CREATE TABLE RecurringDonation
 (
     RecurringDonationId INT PRIMARY KEY AUTO_INCREMENT,
-    StartDate           Date    NOT NULL,
-    IsActive            BOOLEAN NOT NULL DEFAULT TRUE,
-    FreqInDays          INT     NOT NULL,
-    LastPayment         DATE,
-    NextPayment         DATE AS (DATE_ADD(LastPayment, INTERVAL FreqInDays DAY)) VIRTUAL,
-    DonationId          INT     NOT NULL,
+    UserId              INT            NOT NULL,
+    PaymentMethodId     INT            NOT NULL,
+    AmountPerPayment    DECIMAL(10, 2) NOT NULL,
+    StartDate           DATE           NOT NULL,
+    FreqInDays          INT            NOT NULL,
+    NextPaymentDate     DATE           NOT NULL,
+    IsActive            BOOLEAN        NOT NULL DEFAULT TRUE,
 
-    FOREIGN KEY (DonationId) REFERENCES Donation (DonationId) ON DELETE CASCADE
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE CASCADE,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT
+);
+
+CREATE TABLE Donation
+(
+    DonationId          INT PRIMARY KEY AUTO_INCREMENT,
+    UserId              INT            NOT NULL,
+    Amount              DECIMAL(10, 2) NOT NULL,
+    DonationDate        DATE           NOT NULL,
+    PaymentMethodId     INT,
+    CampaignId          INT,
+    RecurringDonationId INT,
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId) ON DELETE RESTRICT,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT,
+    FOREIGN KEY (RecurringDonationId) REFERENCES RecurringDonation (RecurringDonationId) ON DELETE SET NULL
 );
 
 
 
-# List all animals currently in care, with their medical status.
-# Show total donations received in a given campaign or month.
-# Identify top donors by contribution.
-# Track the number of animals rehomed in a specific year.
-# Show which volunteers are currently active.
 
 
 
