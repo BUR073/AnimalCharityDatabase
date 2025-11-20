@@ -1,11 +1,11 @@
 use animal;
 
-# List all animals currently in care, with their medical status
+# List all animals currently in care, with their medical status - WORKS
 SELECT a.Name AS AnimalName,
        a.Type,
        a.Breed,
        b.BranchName,
-       ap.AdoptionStatus,
+       a.AdoptionStatus,
        ms.CurrentMedication,
        ms.MedicalHistory
 FROM Animal a
@@ -17,7 +17,7 @@ FROM Animal a
      MedicalStatus ms ON a.MedicalStatusId = ms.MedicalStatusId
 WHERE ap.AdoptionStatus <> 'Adopted';
 
-# Identify top donors by contribution
+# Identify top donors by contribution - WORKS
 SELECT u.FirstName,
        u.LastName,
        u.Email,
@@ -29,7 +29,7 @@ GROUP BY u.UserId, u.FirstName, u.LastName, u.Email
 ORDER BY TotalDonated DESC;
 
 
-# Show volunteer who is the most active
+# Show volunteer who is the most active - WORKS
 SELECT u.FirstName,
        u.LastName,
        COUNT(ra.AssignmentId) AS TotalAssignments
@@ -39,13 +39,14 @@ FROM User u
          JOIN
      RoleAssignments ra ON r.RoleId = ra.RoleId
 WHERE r.RoleType = 'Volunteer'
-  AND r.IsActive = TRUE -- Only count active volunteers
+  AND r.IsActive = TRUE
 GROUP BY u.UserId, u.FirstName, u.LastName
 ORDER BY TotalAssignments DESC
 LIMIT 1;
 
 
 # Show total donations received in a given campaign or month
+#     TODO: Update these so that you can choose campaign/month rather than show them all
 # Campaign
 SELECT c.Name              AS CampaignName,
        COUNT(d.DonationId) AS TotalDonationsCount,
@@ -57,16 +58,15 @@ GROUP BY c.CampaignId, c.Name
 ORDER BY TotalAmountReceived DESC;
 
 # Month
-SELECT
-    -- Format the date for cleaner output (e.g., '2025-10')
-    DATE_FORMAT(DonationDate, '%Y-%m') AS DonationMonth,
-    COUNT(DonationId)                  AS TotalDonationsCount,
-    SUM(Amount)                        AS TotalAmountReceived
+SELECT DATE_FORMAT(DonationDate, '%Y-%m') AS DonationMonth,
+       COUNT(DonationId)                  AS TotalDonationsCount,
+       SUM(Amount)                        AS TotalAmountReceived
 FROM Donation
 GROUP BY DonationMonth
 ORDER BY DonationMonth DESC;
 
-# Track the number of animals rehomed in a specific year
+# Track the number of animals rehomed in a specific year - DOES NOT WORK
+# TODO: make it work
 SELECT COUNT(AnimalId)         AS AnimalsRehomedCount,
        YEAR(ap.StatusUpdateAt) AS RehomingYear
 FROM Animal a
