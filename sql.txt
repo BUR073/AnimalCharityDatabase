@@ -1,6 +1,254 @@
-Use animal;
-# Sample data for at least 10 animals, 10 donors, and 3 campaigns.
-# Create Addresses
+CREATE
+    DATABASE animal;
+
+USE
+    animal;
+
+CREATE TABLE Address
+(
+    AddressId INT PRIMARY KEY AUTO_INCREMENT,
+    Line1     VARCHAR(100) NOT NULL,
+    Line2     VARCHAR(100),
+    Postcode  VARCHAR(8)   NOT NULL,
+    Town      VARCHAR(30)  NOT NULL,
+    County    VARCHAR(30)  NOT NULL
+);
+
+CREATE TABLE Branch
+(
+    BranchId   INT PRIMARY KEY AUTO_INCREMENT,
+    BranchName VARCHAR(100) NOT NULL,
+    AddressId  INT          NOT NULL,
+
+    FOREIGN KEY (AddressId) REFERENCES Address (AddressId) ON DELETE RESTRICT
+);
+
+CREATE TABLE AdoptionFormQuestion
+(
+    QuestionId INT PRIMARY KEY AUTO_INCREMENT,
+    Question   TEXT NOT NULL
+);
+
+CREATE TABLE Campaign
+(
+    CampaignId  INT PRIMARY KEY AUTO_INCREMENT,
+    Name        Varchar(100) NOT NULL,
+    Description TEXT         NOT NULL,
+    StartDate   DATE         NOT NULL,
+    EndDate     DATE
+);
+
+
+CREATE TABLE MedicalStatus
+(
+    MedicalStatusId   INT PRIMARY KEY AUTO_INCREMENT,
+    CurrentMedication TEXT,
+    MedicalHistory    TEXT
+
+);
+
+CREATE TABLE AdoptionProgress
+(
+    AdoptionProgressId INT PRIMARY KEY AUTO_INCREMENT,
+    AdoptionStatus     ENUM ('In Branch', 'Adoption In progress', 'Awaiting Home visit', 'Adopted'),
+    Notes              TEXT,
+    StatusUpdateAt     DATE NOT NULL
+
+);
+
+CREATE TABLE Animal
+(
+    AnimalId           INT PRIMARY KEY AUTO_INCREMENT,
+    BranchId           INT         NOT NULL,
+    Name               VARCHAR(50) NOT NULL,
+    Type               VARCHAR(50) NOT NULL,
+    Breed              VARCHAR(50) NOT NULL,
+    DOB                DATE        NOT NULL,
+    Size               ENUM ('Small', 'Medium', 'Large'),
+    Description        TEXT,
+    MedicalStatusId    INT UNIQUE,
+    AdoptionProgressId INT UNIQUE  NOT NULL,
+
+    FOREIGN KEY (BranchId) REFERENCES Branch (BranchId) ON DELETE RESTRICT,
+    FOREIGN KEY (MedicalStatusId) REFERENCES MedicalStatus (MedicalStatusId) ON DELETE RESTRICT,
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId) ON DELETE RESTRICT
+);
+
+CREATE TABLE User
+(
+    UserId    INT PRIMARY KEY AUTO_INCREMENT,
+    FirstName VARCHAR(100)        NOT NULL,
+    LastName  VARCHAR(100)        NOT NULL,
+    Email     VARCHAR(100) UNIQUE NOT NULL,
+    Phone     VARCHAR(15)         NOT NULL,
+    AddressId INT                 NOT NULL,
+
+    FOREIGN KEY (AddressId) REFERENCES Address (AddressId) ON DELETE RESTRICT
+);
+
+CREATE TABLE Role
+(
+    RoleId   INT PRIMARY KEY AUTO_INCREMENT,
+    UserId   INT     NOT NULL,
+    Salary   DECIMAL(10, 2),
+    RoleType ENUM ('Staff', 'Volunteer'),
+    IsActive BOOLEAN NOT NULL DEFAULT TRUE,
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE CASCADE,
+
+    CHECK ( (RoleType = 'Volunteer' AND Salary IS NULL) OR (RoleType = 'Staff') )
+);
+
+CREATE TABLE PaymentMethod
+(
+    PaymentMethodId   INT PRIMARY KEY AUTO_INCREMENT,
+    UserId            INT                           NOT NULL,
+    PaymentMethodType ENUM ('Direct Debit', 'Card') NOT NULL,
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE CASCADE
+);
+
+CREATE TABLE DirectDebitDetails
+(
+    PaymentMethodId   INT PRIMARY KEY,
+    SortCode          VARCHAR(10)  NOT NULL,
+    AccountNumber     VARCHAR(15)  NOT NULL,
+    AccountHolderName VARCHAR(100) NOT NULL,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE CASCADE
+);
+
+CREATE TABLE CardDetails
+(
+    PaymentMethodId  INT PRIMARY KEY,
+    CardNumber       VARCHAR(50) NOT NULL,
+    ExpDate          DATE        NOT NULL,
+    SecurityCode     VARCHAR(4)  NOT NULL,
+    BillingAddressId INT         NOT NULL,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE CASCADE,
+    FOREIGN KEY (BillingAddressId) REFERENCES Address (AddressId)
+);
+
+CREATE TABLE HomeVisit
+(
+    HomeVisitId        INT PRIMARY KEY AUTO_INCREMENT,
+    VisitDate          DATE NOT NULL,
+    StaffWhoVisited    INT  NOT NULL,
+    Adopter            INT  NOT NULL,
+    AdoptionProgressId INT UNIQUE,
+
+    FOREIGN KEY (StaffWhoVisited) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (Adopter) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId) ON DELETE RESTRICT,
+
+    CHECK (StaffWhoVisited <> Adopter)
+);
+
+CREATE TABLE AdoptionForm
+(
+    AdoptionFormId     INT PRIMARY KEY AUTO_INCREMENT,
+    UserId             INT NOT NULL,
+    DateSubmitted      DATETIME DEFAULT CURRENT_TIMESTAMP,
+    AdoptionProgressId INT UNIQUE,
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId) ON DELETE RESTRICT
+);
+
+CREATE TABLE AdoptionProgressHistory
+(
+    HistoryId          INT PRIMARY KEY AUTO_INCREMENT,
+    AdoptionProgressId INT  NOT NULL,
+    AdoptionStatus     ENUM ('In Branch', 'Adoption In progress', 'Awaiting Home visit', 'Adopted'),
+    StatusUpdateAt     DATE NOT NULL,
+    Notes              TEXT,
+    FOREIGN KEY (AdoptionProgressId) REFERENCES AdoptionProgress (AdoptionProgressId) ON DELETE CASCADE
+);
+
+CREATE TABLE Assignment
+(
+    AssignmentId   INT PRIMARY KEY AUTO_INCREMENT,
+    AnimalId       INT NULL,
+    AdoptionFormId INT NULL,
+    CampaignId     INT NULL,
+
+    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId) ON DELETE RESTRICT,
+    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId) ON DELETE RESTRICT,
+    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId) ON DELETE RESTRICT,
+
+    CONSTRAINT only_one_task_for_assignment
+        CHECK (
+            (AnimalId IS NOT NULL) +
+            (AdoptionFormId IS NOT NULL) +
+            (CampaignId IS NOT NULL) = 1)
+
+);
+
+CREATE TABLE Sponsorship
+(
+    SponsorshipId     INT PRIMARY KEY AUTO_INCREMENT,
+    UserId            INT            NOT NULL,
+    AnimalId          INT            NOT NULL,
+    SponsorshipAmount DECIMAL(10, 2) NOT NULL,
+    PaymentMethodId   INT            NOT NULL,
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId) ON DELETE RESTRICT,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT
+);
+
+CREATE TABLE AdoptionFormAnswer
+(
+    AnswerId       INT PRIMARY KEY AUTO_INCREMENT,
+    AdoptionFormId INT  NOT NULL,
+    QuestionId     INT  NOT NULL,
+    Answer         TEXT NOT NULL,
+
+    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId) ON DELETE CASCADE,
+    FOREIGN KEY (QuestionId) REFERENCES AdoptionFormQuestion (QuestionId) ON DELETE RESTRICT
+);
+
+CREATE TABLE RoleAssignments
+(
+    RoleId       INT,
+    AssignmentId INT,
+    PRIMARY KEY (RoleId, AssignmentId),
+
+    FOREIGN KEY (RoleId) REFERENCES Role (RoleId) ON DELETE CASCADE,
+    FOREIGN KEY (AssignmentId) REFERENCES Assignment (AssignmentId) ON DELETE CASCADE
+
+);
+
+CREATE TABLE RecurringDonation
+(
+    RecurringDonationId INT PRIMARY KEY AUTO_INCREMENT,
+    UserId              INT            NOT NULL,
+    PaymentMethodId     INT            NOT NULL,
+    AmountPerPayment    DECIMAL(10, 2) NOT NULL,
+    StartDate           DATE           NOT NULL,
+    FreqInDays          INT            NOT NULL,
+    NextPaymentDate     DATE           NOT NULL,
+    IsActive            BOOLEAN        NOT NULL DEFAULT TRUE,
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE CASCADE,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT
+);
+
+CREATE TABLE Donation
+(
+    DonationId          INT PRIMARY KEY AUTO_INCREMENT,
+    UserId              INT            NOT NULL,
+    Amount              DECIMAL(10, 2) NOT NULL,
+    DonationDate        DATE           NOT NULL,
+    PaymentMethodId     INT,
+    CampaignId          INT,
+    RecurringDonationId INT,
+
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
+    FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId) ON DELETE RESTRICT,
+    FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT,
+    FOREIGN KEY (RecurringDonationId) REFERENCES RecurringDonation (RecurringDonationId) ON DELETE SET NULL
+);
+
 
 INSERT INTO Address (Line1, Line2, Postcode, Town, County)
 VALUES ('Address1', 'Address1', 'CBW3ESD', 'Cambridge', 'Cambridgeshire'),
@@ -272,3 +520,80 @@ VALUES (@Role1, @Assignment1),
        (@Role4, @Assignment8),
        (@Role5, @Assignment9),
        (@Role5, @Assignment10);
+ List all animals currently in care, with their medical status - WORKS
+SELECT a.Name AS AnimalName,
+       a.Type,
+       a.Breed,
+       b.BranchName,
+       ap.AdoptionStatus,
+       ms.CurrentMedication,
+       ms.MedicalHistory
+FROM Animal a
+         JOIN
+     AdoptionProgress ap ON a.AdoptionProgressId = ap.AdoptionProgressId
+         JOIN
+     Branch b ON a.BranchId = b.BranchId
+         LEFT JOIN
+     MedicalStatus ms ON a.MedicalStatusId = ms.MedicalStatusId
+WHERE ap.AdoptionStatus <> 'Adopted';
+
+# Identify top donors by contribution - WORKS
+SELECT u.FirstName,
+       u.LastName,
+       u.Email,
+       SUM(d.Amount) AS TotalDonated
+FROM User u
+         JOIN
+     Donation d ON u.UserId = d.UserId
+GROUP BY u.UserId, u.FirstName, u.LastName, u.Email
+ORDER BY TotalDonated DESC;
+
+
+# Show volunteer who is the most active - WORKS
+SELECT u.FirstName,
+       u.LastName,
+       COUNT(ra.AssignmentId) AS TotalAssignments
+FROM User u
+         JOIN
+     Role r ON u.UserId = r.UserId
+         JOIN
+     RoleAssignments ra ON r.RoleId = ra.RoleId
+WHERE r.RoleType = 'Volunteer'
+  AND r.IsActive = TRUE
+GROUP BY u.UserId, u.FirstName, u.LastName
+ORDER BY TotalAssignments DESC
+LIMIT 1;
+
+
+# Show total donations received in a given campaign or month
+# Campaign - WORKS
+SELECT c.Name              AS CampaignName,
+       COUNT(d.DonationId) AS TotalDonationsCount,
+       SUM(d.Amount)       AS TotalAmountReceived
+FROM Donation d
+         JOIN
+     Campaign c ON d.CampaignId = c.CampaignId
+WHERE c.CampaignId = 1
+GROUP BY c.CampaignId, c.Name
+ORDER BY TotalAmountReceived DESC;
+
+# Month - WORKS
+SELECT DATE_FORMAT(DonationDate, '%Y-%m') AS DonationMonth,
+       COUNT(DonationId)                  AS TotalDonationsCount,
+       SUM(Amount)                        AS TotalAmountReceived
+FROM Donation
+WHERE DATE_FORMAT(DonationDate, '%Y-%m') = '2026-07'
+GROUP BY DonationMonth
+ORDER BY DonationMonth DESC;
+
+# Track the number of animals rehomed in a specific year - WORKS
+SELECT A.Name             AS AnimalName,
+       A.Type,
+       A.Breed,
+       APH.StatusUpdateAt AS DateAdopted
+FROM Animal A
+         JOIN
+     AdoptionProgressHistory APH ON A.AdoptionProgressId = APH.AdoptionProgressId
+WHERE APH.AdoptionStatus = 'Adopted'
+  AND YEAR(APH.StatusUpdateAt) = 2025
+ORDER BY APH.StatusUpdateAt;

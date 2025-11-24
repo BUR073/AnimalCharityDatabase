@@ -11,7 +11,7 @@ CREATE TABLE Address
     AddressId INT PRIMARY KEY AUTO_INCREMENT,
     Line1     VARCHAR(100) NOT NULL,
     Line2     VARCHAR(100),
-    Postcode  VARCHAR(7)   NOT NULL,
+    Postcode  VARCHAR(8)   NOT NULL,
     Town      VARCHAR(30)  NOT NULL,
     County    VARCHAR(30)  NOT NULL
 );
@@ -35,8 +35,8 @@ CREATE TABLE Campaign
 (
     CampaignId  INT PRIMARY KEY AUTO_INCREMENT,
     Name        Varchar(100) NOT NULL,
-    Description TEXT,
-    StartDate   DATE,
+    Description TEXT         NOT NULL,
+    StartDate   DATE         NOT NULL,
     EndDate     DATE
 );
 
@@ -92,11 +92,13 @@ CREATE TABLE Role
 (
     RoleId   INT PRIMARY KEY AUTO_INCREMENT,
     UserId   INT     NOT NULL,
-    Salary   INT,
+    Salary   DECIMAL(10, 2),
     RoleType ENUM ('Staff', 'Volunteer'),
     IsActive BOOLEAN NOT NULL DEFAULT TRUE,
 
-    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE CASCADE
+    FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE CASCADE,
+
+    CHECK ( (RoleType = 'Volunteer' AND Salary IS NULL) OR (RoleType = 'Staff') )
 );
 
 CREATE TABLE PaymentMethod
@@ -132,8 +134,8 @@ CREATE TABLE HomeVisit
 (
     HomeVisitId        INT PRIMARY KEY AUTO_INCREMENT,
     VisitDate          DATE NOT NULL,
-    StaffWhoVisited    INT,
-    Adopter            INT,
+    StaffWhoVisited    INT  NOT NULL,
+    Adopter            INT  NOT NULL,
     AdoptionProgressId INT UNIQUE,
 
     FOREIGN KEY (StaffWhoVisited) REFERENCES User (UserId) ON DELETE RESTRICT,
@@ -167,22 +169,29 @@ CREATE TABLE AdoptionProgressHistory
 CREATE TABLE Assignment
 (
     AssignmentId   INT PRIMARY KEY AUTO_INCREMENT,
-    AnimalId       INT,
-    AdoptionFormId INT,
-    CampaignId     INT,
+    AnimalId       INT NULL,
+    AdoptionFormId INT NULL,
+    CampaignId     INT NULL,
 
     FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId) ON DELETE RESTRICT,
     FOREIGN KEY (CampaignId) REFERENCES Campaign (CampaignId) ON DELETE RESTRICT,
-    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId) ON DELETE RESTRICT
+    FOREIGN KEY (AdoptionFormId) REFERENCES AdoptionForm (AdoptionFormId) ON DELETE RESTRICT,
+
+    CONSTRAINT only_one_task_for_assignment
+        CHECK (
+            (AnimalId IS NOT NULL) +
+            (AdoptionFormId IS NOT NULL) +
+            (CampaignId IS NOT NULL) = 1)
+
 );
 
 CREATE TABLE Sponsorship
 (
     SponsorshipId     INT PRIMARY KEY AUTO_INCREMENT,
-    UserId            INT NOT NULL,
-    AnimalId          INT NOT NULL,
-    SponsorshipAmount INT NOT NULL,
-    PaymentMethodId   INT NOT NULL,
+    UserId            INT            NOT NULL,
+    AnimalId          INT            NOT NULL,
+    SponsorshipAmount DECIMAL(10, 2) NOT NULL,
+    PaymentMethodId   INT            NOT NULL,
 
     FOREIGN KEY (UserId) REFERENCES User (UserId) ON DELETE RESTRICT,
     FOREIGN KEY (AnimalId) REFERENCES Animal (AnimalId) ON DELETE RESTRICT,
@@ -205,8 +214,10 @@ CREATE TABLE RoleAssignments
     RoleId       INT,
     AssignmentId INT,
     PRIMARY KEY (RoleId, AssignmentId),
+
     FOREIGN KEY (RoleId) REFERENCES Role (RoleId) ON DELETE CASCADE,
     FOREIGN KEY (AssignmentId) REFERENCES Assignment (AssignmentId) ON DELETE CASCADE
+
 );
 
 CREATE TABLE RecurringDonation
@@ -239,10 +250,5 @@ CREATE TABLE Donation
     FOREIGN KEY (PaymentMethodId) REFERENCES PaymentMethod (PaymentMethodId) ON DELETE RESTRICT,
     FOREIGN KEY (RecurringDonationId) REFERENCES RecurringDonation (RecurringDonationId) ON DELETE SET NULL
 );
-
-
-
-
-
 
 

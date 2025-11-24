@@ -5,7 +5,7 @@ SELECT a.Name AS AnimalName,
        a.Type,
        a.Breed,
        b.BranchName,
-       a.AdoptionStatus,
+       ap.AdoptionStatus,
        ms.CurrentMedication,
        ms.MedicalHistory
 FROM Animal a
@@ -46,32 +46,34 @@ LIMIT 1;
 
 
 # Show total donations received in a given campaign or month
-#     TODO: Update these so that you can choose campaign/month rather than show them all
-# Campaign
+# Campaign - WORKS
 SELECT c.Name              AS CampaignName,
        COUNT(d.DonationId) AS TotalDonationsCount,
        SUM(d.Amount)       AS TotalAmountReceived
 FROM Donation d
          JOIN
      Campaign c ON d.CampaignId = c.CampaignId
+WHERE c.CampaignId = 1
 GROUP BY c.CampaignId, c.Name
 ORDER BY TotalAmountReceived DESC;
 
-# Month
+# Month - WORKS
 SELECT DATE_FORMAT(DonationDate, '%Y-%m') AS DonationMonth,
        COUNT(DonationId)                  AS TotalDonationsCount,
        SUM(Amount)                        AS TotalAmountReceived
 FROM Donation
+WHERE DATE_FORMAT(DonationDate, '%Y-%m') = '2026-07'
 GROUP BY DonationMonth
 ORDER BY DonationMonth DESC;
 
-# Track the number of animals rehomed in a specific year - DOES NOT WORK
-# TODO: make it work
-SELECT COUNT(AnimalId)         AS AnimalsRehomedCount,
-       YEAR(ap.StatusUpdateAt) AS RehomingYear
-FROM Animal a
+# Track the number of animals rehomed in a specific year - WORKS
+SELECT A.Name             AS AnimalName,
+       A.Type,
+       A.Breed,
+       APH.StatusUpdateAt AS DateAdopted
+FROM Animal A
          JOIN
-     AdoptionProgress ap ON a.AdoptionProgressId = ap.AdoptionProgressId
-WHERE ap.AdoptionStatus = 'Adopted'
-  AND YEAR(ap.StatusUpdateAt) = 2024
-GROUP BY RehomingYear;
+     AdoptionProgressHistory APH ON A.AdoptionProgressId = APH.AdoptionProgressId
+WHERE APH.AdoptionStatus = 'Adopted'
+  AND YEAR(APH.StatusUpdateAt) = 2025
+ORDER BY APH.StatusUpdateAt;
