@@ -249,7 +249,6 @@ CREATE TABLE Donation
     FOREIGN KEY (RecurringDonationId) REFERENCES RecurringDonation (RecurringDonationId) ON DELETE SET NULL
 );
 
-
 INSERT INTO Address (Line1, Line2, Postcode, Town, County)
 VALUES ('Address1', 'Address1', 'CBW3ESD', 'Cambridge', 'Cambridgeshire'),
        ('Address2', 'Address2', 'CBW3ESG', 'Cambridge', 'Cambridgeshire'),
@@ -520,7 +519,8 @@ VALUES (@Role1, @Assignment1),
        (@Role4, @Assignment8),
        (@Role5, @Assignment9),
        (@Role5, @Assignment10);
- List all animals currently in care, with their medical status - WORKS
+
+# List all animals currently in care, with their medical status - WORKS
 SELECT a.Name AS AnimalName,
        a.Type,
        a.Breed,
